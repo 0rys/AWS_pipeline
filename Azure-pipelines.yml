@@ -1,0 +1,43 @@
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: Azure-CI-CD-test
+      ref: refs/heads/main
+
+trigger:
+- none
+
+pool:
+  name: EMA_pool
+  demands:
+  - Agent.Env -equals DEV
+
+variables:
+  pythonVersion: '3.9'
+
+stages:
+- stage: Build
+  displayName: 'Build and Test'
+  jobs:
+  - job: Build
+    steps:
+    - template: azure-pipelines-templates/build.yml@templates
+      parameters:
+        pythonVersion: $(pythonVersion)
+
+- stage: Test
+  jobs:
+  - job: Test
+    steps:
+    - template: azure-pipelines-templates/test.yml@templates
+      parameters:
+        pythonVersion: $(pythonVersion)
+
+- stage: Deploy
+  jobs:
+  - job: Deploy
+    steps:
+    - template: azure-pipelines-templates/deploy.yml@templates
+      parameters:
+        pythonVersion: $(pythonVersion)

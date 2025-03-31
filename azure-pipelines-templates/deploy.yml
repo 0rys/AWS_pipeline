@@ -8,7 +8,7 @@ steps:
 
   - task: AzureWebApp@1
     inputs:
-      azureSubscription: ''
+      azureSubscription: 'dev-devopsreference-00001-spn'
       appName: 'Azure-pipeline-test'
       package: '$(System.DefaultWorkingDirectory)
       startUpCommand: python hello_world.py

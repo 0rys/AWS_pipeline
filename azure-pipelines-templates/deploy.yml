@@ -3,7 +3,7 @@ parameters:
 
 steps:
   - task: UsePythonVersion@0
-    input:
+    inputs:
       versionSpec: ${{ parameters.pythonVersion }}
 
   - task: AzureWebApp@1

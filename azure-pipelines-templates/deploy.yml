@@ -1,0 +1,14 @@
+parameters: 
+  pythonVersion: '3.9'
+
+steps:
+  - task: UsePythonVersion@0
+    input:
+      versionSpec: ${{ parameters.pythonVersion }}
+
+  - task: AzureWebApp@1
+    inputs:
+      azureSubscription: ''
+      appName: 'Azure-pipeline-test'
+      package: '$(System.DefaultWorkingDirectory)
+      startUpCommand: python hello_world.py

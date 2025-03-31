@@ -1,0 +1,10 @@
+steps:
+  - script: |
+      pytest --junitxml=junit/test-results.xml
+    displayName: 'Run tests'
+
+  - task: PublishTestResults@2
+    inputs:
+      testRunTitle: 'Python tests'
+      testResultsFiles: '**/test-results.xml'
+    condition: succeededOrFailed()

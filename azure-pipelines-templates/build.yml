@@ -1,5 +1,5 @@
 parameters:
-  pythonVersion: '3.12.8'
+  pythonVersion: '3.x'
 
 steps:
   - task: UsePythonVersion@0

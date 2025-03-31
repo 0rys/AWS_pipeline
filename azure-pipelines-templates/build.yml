@@ -5,8 +5,6 @@ steps:
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '$(pythonVersion)'
-      addToPath: true
-      architecture: 'x64'
 
   - script: |
       python -m pip install --upgrade pip

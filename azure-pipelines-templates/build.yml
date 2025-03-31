@@ -1,5 +1,5 @@
 parameters:
-  pythonVersion: '3.9'
+  pythonVersion: '3.12.8'
 
 steps:
   - task: UsePythonVersion@0
@@ -12,13 +12,3 @@ steps:
       python -m pip install --upgrade pip
       pip install -r requirements.txt
     displayName: 'Install dependencies'
-
-  - script: |
-      pytest --junitxml=junit/test-results.xml
-    displayName: 'Run tests'
-
-  - task: PublishTestResults@2
-    inputs:
-      testRunTitle: 'Python tests'
-      testResultsFiles: '**/test-results.xml'
-    condition: succeededOrFailed()

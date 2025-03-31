@@ -14,7 +14,7 @@ pool:
   - Agent.Env -equals DEV
 
 variables:
-  pythonVersion: '3.9'
+  pythonVersion: '3.12.8'
 
 stages:
 - stage: Build

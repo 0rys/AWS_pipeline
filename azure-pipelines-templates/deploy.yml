@@ -24,7 +24,7 @@ steps:
     inputs:
       azureSubscription: 'dev-devopsreference-00001-spn'
       appName: 'Azure-pipeline-test'
-      package: '$(System.DefaultWorkingDirectory)/drop'
+      package: '$(System.DefaultWorkingDirectory)'
       startUpCommand: ./startup_script.sh
       deploymentMethod: 'zipDeploy'
       enableCustomDeployment: true

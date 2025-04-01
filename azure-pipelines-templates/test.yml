@@ -34,9 +34,3 @@ steps:
       testResultsFiles: '**/junit/*.xml'
       testRunTitle: 'Python Tests'
     condition: succeededOrFailed()
-
-  - task: PublishCoverageResults@1
-    inputs:
-      codeCoverageTool: Cobertura
-      summaryFileLocation: '$(System.ArtifactsDirectory)/**/coverage.xml'
-    displayName: 'Publish code coverage results'

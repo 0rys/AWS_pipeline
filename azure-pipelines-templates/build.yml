@@ -8,3 +8,17 @@ steps:
       python -m pip install --upgrade pip
       python -m pip install -r requirements.txt
     displayName: 'Install dependencies'
+
+  - task: CopyFiles@2
+    inputs:
+      contents: |
+        **/*.py
+        requirements.txt
+      targetFolder: '$(Build.ArtifactStagingDirectory)'
+    displayName: 'Copy files to artifact directory'
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      artifactName: 'drop'
+    displayName: 'Publish artifact'

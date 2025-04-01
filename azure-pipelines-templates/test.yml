@@ -1,10 +1,42 @@
 steps:
+  - task: DownloadBuildArtifacts@1
+    inputs:
+      buildType: 'current'
+      artifactName: 'python-app'
+      downloadPath: '$(System.ArtifactsDirectory)'
+    displayName: 'Download build artifacts'
+
   - script: |
-      pytest --junitxml=junit/test-results.xml
-    displayName: 'Run tests'
+      python --version
+      python -m ensurepip --upgrade
+      python -m pip install --upgrade pip
+      python -m pip install -r requirements.txt
+    displayName: 'Install dependencies'
+
+  # Unit tests
+  - script: |
+      mkdir -p junit
+      python -m pytest test_hello_world.py --junitxml=junit/test-results.xml
+    displayName: 'Run unit tests'
+
+  # integration tests
+  - script: |
+      python hello_world.py
+      echo $! > flask.pid
+      sleep 5
+      python -m pytest test_integration.py --junitxml=junit/integration-test-results.xml
+      kill -9 $(cat flask.pid)
+    displayName: 'Run integration tests'
 
   - task: PublishTestResults@2
     inputs:
-      testRunTitle: 'Python tests'
-      testResultsFiles: '**/test-results.xml'
+      testRunTitle: 'JUnit'
+      testResultsFiles: '**/junit/*.xml'
+      testRunTitle: 'Python Tests'
     condition: succeededOrFailed()
+
+  - task: PublishCoverageResults@1
+    inputs:
+      codeCoverageTool: Cobertura
+      summaryFileLocation: '$(System.ArtifactsDirectory)/**/coverage.xml'
+    displayName: 'Publish code coverage results'

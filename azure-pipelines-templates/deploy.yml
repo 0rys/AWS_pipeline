@@ -6,6 +6,12 @@ steps:
     inputs:
       versionSpec: ${{ parameters.pythonVersion }}
 
+  - task: DownloadBuildArtifacts@0
+    inputs:
+      buildType: 'current'
+      artifactName: 'drop'
+      downloadPath: '$(System.ArtifactsDirectory)'
+
   - task: AzureWebApp@1
     inputs:
       azureSubscription: 'dev-devopsreference-00001-spn'

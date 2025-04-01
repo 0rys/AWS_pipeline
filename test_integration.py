@@ -4,7 +4,7 @@ from flask import Flask
 from hello_world import app
 
 @pytest.fixture
-def client():
+def test_client():
     app.config['TESTING'] = True
     with app.test_client() as client:
         yield client
@@ -13,7 +13,7 @@ def test_hello_world_with_client(test_client):
     """test using flask test client"""
     response = test_client.get('/')
     assert response.status_code == 200
-    assert response.data.decode('utf-8') == 'Hello World!'
+    assert response.data.decode('utf-8') == 'Hello, World!'
 
 def test_request_headers(test_client):
     """test response headers"""

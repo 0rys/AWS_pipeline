@@ -1,5 +1,4 @@
 import pytest
-import requests
 from flask import Flask
 from hello_world import app
 

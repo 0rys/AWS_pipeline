@@ -25,4 +25,4 @@ steps:
       azureSubscription: 'dev-devopsreference-00001-spn'
       appName: 'Azure-pipeline-test'
       package: '$(System.DefaultWorkingDirectory)'
-      startUpCommand: python hello_world.py
+      startUpCommand: ./startup_script.sh

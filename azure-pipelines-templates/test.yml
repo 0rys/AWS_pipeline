@@ -21,7 +21,7 @@ steps:
 
   # integration tests
   - script: |
-      python hello_world.py
+      python hello_world.py &
       echo $! > flask.pid
       sleep 5
       python -m pytest test_integration.py --junitxml=junit/integration-test-results.xml

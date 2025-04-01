@@ -30,7 +30,7 @@ steps:
 
   - task: PublishTestResults@2
     inputs:
-      testRunTitle: 'JUnit'
+      testRunFormat: 'JUnit'
       testResultsFiles: '**/junit/*.xml'
       testRunTitle: 'Python Tests'
     condition: succeededOrFailed()

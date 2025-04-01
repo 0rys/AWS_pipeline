@@ -1,5 +1,5 @@
 parameters: 
-  pythonVersion: '3.x'
+  pythonVersion: '3.9'
 
 steps:
   # downloading artifacts

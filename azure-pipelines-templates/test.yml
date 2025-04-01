@@ -1,4 +1,5 @@
 steps:
+  # downloading artifact
   - task: DownloadBuildArtifacts@1
     inputs:
       buildType: 'current'
@@ -6,6 +7,7 @@ steps:
       downloadPath: '$(System.ArtifactsDirectory)'
     displayName: 'Download build artifacts'
 
+  # installing dependencies
   - script: |
       python --version
       python -m ensurepip --upgrade

@@ -2,6 +2,7 @@ parameters:
   pythonVersion: '3.x'
 
 steps:
+  # installing dependencies
   - script: |
       python --version
       python -m ensurepip --upgrade
@@ -9,6 +10,7 @@ steps:
       python -m pip install -r requirements.txt
     displayName: 'Install dependencies'
 
+  # copying artifacts to directory
   - task: CopyFiles@2
     inputs:
       contents: |
@@ -17,6 +19,7 @@ steps:
       targetFolder: '$(Build.ArtifactStagingDirectory)'
     displayName: 'Copy files to artifact directory'
 
+  # publishing artifacts
   - task: PublishBuildArtifacts@1
     inputs:
       pathtoPublish: '$(Build.ArtifactStagingDirectory)'

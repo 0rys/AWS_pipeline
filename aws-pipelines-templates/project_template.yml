@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS CodePipeline infrastructure for CI-CD testing'
+
+Parameters:
+  InfrastructureStackName:
+    Type: String
+    Description: Name of the infrastructure stack
+  PythonVersion:
+    Type: String
+    Default: '3.9'
+    Description: Python version to use
+
+Resources:
+  BuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub ${AWS::StackName}-build
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:4.0
+        EnvironmentVariables:
+          - Name: PYTHON_VERSION
+            Value: !Ref PythonVersion
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: buildspec.yml
+
+  TestProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub ${AWS::StackName}-test
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:4.0
+        EnvironmentVariables:
+          - Name: PYTHON_VERSION
+            Value: !Ref PythonVersion
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: testspec.yml
+
+
+  DeployProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub ${AWS::StackName}-deploy
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:4.0
+        EnvironmentVariables:
+          - Name: PYTHON_VERSION
+            Value: !Ref PythonVersion
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: deployspec.yml
+
+Output:
+  BuildProjectName:
+    Description: Name of the build project
+    Value: !Ref BuildProject
+    Export:
+      Name: !Sub ${AWS::StackName}-BuildProject

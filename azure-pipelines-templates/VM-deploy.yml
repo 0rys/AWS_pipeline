@@ -1,0 +1,27 @@
+parameters: 
+  pythonVersion: '3.9'
+
+steps:
+  # downloading artifacts
+  - task: DownloadBuildArtifacts@0
+    inputs:
+      buildType: 'current'
+      artifactName: 'drop'
+      downloadPath: '$(System.ArtifactsDirectory)'
+
+  # creating webapp resources
+  - task: AzureCLI@2
+    inputs:
+      azureSubscription: 'dev-devopsreference-00001-spn'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+
+        az vm create --resource-group dev-devopsreference-00001-rg --name dev-devopsreference-00001-vm --image UbuntuLTS --admin-username azureuser --generate-ssh-keys
+        
+        VM_IP=$(az vm show --resource-group dev-devopsreference-00001-rg --name dev-devopsreference-00001-vm --show-details --query [publicIps] --output tsv)
+
+        scp -r $(System.ArtifactsDirectory)/* azureuser@VM_IP:/home/azureuser/
+
+        az vm run-command invoke --resource-group dev-devopsreference-00001-rg --name dev-devopsreference-00001-vm --command-id RunShellScript --scripts "chmod +x /home/azureuser/startup_script.sh && /home/azureuser/startup_script.sh"
+

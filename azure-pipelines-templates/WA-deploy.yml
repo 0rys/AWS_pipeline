@@ -1,0 +1,30 @@
+parameters: 
+  pythonVersion: '3.9'
+
+steps:
+  # downloading artifacts
+  - task: DownloadBuildArtifacts@0
+    inputs:
+      buildType: 'current'
+      artifactName: 'drop'
+      downloadPath: '$(System.ArtifactsDirectory)'
+
+  # creating webapp resources
+  - task: AzureCLI@2
+    inputs:
+      azureSubscription: 'dev-devopsreference-00001-spn'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+        az appservice plan create --resource-group dev-devopsreference-00001-rg --name dev-devopsreference-00001-plan --sku B1 --is-linux
+        az webapp create --resource-group dev-devopsreference-00001-rg --plan dev-devopsreference-00001-plan --name Azure-pipeline-test --runtime "PYTHON|$(pythonVersion)"
+
+  # setting up deployment resources
+  - task: AzureWebApp@1
+    inputs:
+      azureSubscription: 'dev-devopsreference-00001-spn'
+      appName: 'Azure-pipeline-test'
+      package: '$(System.DefaultWorkingDirectory)'
+      startUpCommand: ./startup_script.sh
+      deploymentMethod: 'zipDeploy'
+      enableCustomDeployment: true

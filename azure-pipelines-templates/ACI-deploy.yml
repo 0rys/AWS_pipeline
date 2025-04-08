@@ -1,0 +1,21 @@
+parameters: 
+  pythonVersion: '3.9'
+
+steps:
+  # downloading artifacts
+  - task: DownloadBuildArtifacts@0
+    inputs:
+      buildType: 'current'
+      artifactName: 'drop'
+      downloadPath: '$(System.ArtifactsDirectory)'
+
+  # creating webapp resources
+  - task: AzureCLI@2
+    inputs:
+      azureSubscription: 'dev-devopsreference-00001-spn'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+
+        az container create --resource-group dev-devopsreference-00001-rg --name pipeline-test-container-100363757 --image <pipeline-test-image-100363757> --ports 80 --environment-variables 'STARTUP_SCRIPT=startup_script.sh'
+

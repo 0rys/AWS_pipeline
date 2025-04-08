@@ -1,0 +1,47 @@
+steps:
+  # downloading artifact
+  - task: DownloadBuildArtifacts@1
+    inputs:
+      buildType: 'current'
+      artifactName: 'drop'
+      downloadPath: '$(System.ArtifactsDirectory)'
+    displayName: 'Download build artifacts'
+
+  # installing dependencies
+  - script: |
+      python --version
+      python -m ensurepip --upgrade
+      python -m pip install --upgrade pip
+      python -m pip install -r requirements.txt
+    displayName: 'Install dependencies'
+
+  # Unit tests
+  - script: |
+      mkdir -p junit
+      python -m pytest test_hello_world.py --junitxml=junit/test-results.xml
+    displayName: 'Run unit tests'
+
+  # integration tests
+  - script: |
+      python hello_world.py &
+      echo $! > flask.pid
+      sleep 5
+      python -m pytest test_integration.py --junitxml=junit/integration-test-results.xml
+      kill -9 $(cat flask.pid)
+    displayName: 'Run integration tests'
+
+  - task: PublishTestResults@2
+    inputs:
+      testRunFormat: 'JUnit'
+      testResultsFiles: '**/junit/*.xml'
+      testRunTitle: 'Python Tests'
+    condition: succeededOrFailed()
+
+  - task: Docker@2
+    inputs:
+      containerRegistry: '' # service connection for the container image registry
+      repository: '' # name of the container image repository to store built image
+      command: 'buildAndPush'
+      Dockerfile: '$(Build.sourceDirectory)/Dockerfile'
+      tags: 'latest'
+    displayName: 'Build and push Docker image'

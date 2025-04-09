@@ -17,7 +17,7 @@ steps:
       scriptLocation: 'inlineScript'
       inlineScript: |
 
-        az vm create --resource-group dev-devopsreference-00001-rg --name dev-devopsreference-00001-vm --image UbuntuLTS --admin-username azureuser --generate-ssh-keys
+        az vm create --resource-group dev-devopsreference-00001-rg --name dev-devopsreference-00001-vm --image Ubuntu2204 --admin-username azureuser --generate-ssh-keys
         
         VM_IP=$(az vm show --resource-group dev-devopsreference-00001-rg --name dev-devopsreference-00001-vm --show-details --query [publicIps] --output tsv)
 

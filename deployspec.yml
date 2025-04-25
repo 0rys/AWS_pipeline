@@ -1,4 +1,4 @@
-version 0.1
+version: 0.1
 
 phases:
   install:
@@ -14,3 +14,9 @@ phases:
     commands:
       - echo "Starting application..."
       - python hello_world.py
+
+artifacts:
+  files:
+  - '**/*'
+  base-directory: '.'
+  name application.zip

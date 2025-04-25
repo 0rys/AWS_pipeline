@@ -1,4 +1,4 @@
-version 0.1
+version: 0.1
 
 phases:
   install:
@@ -16,3 +16,8 @@ phases:
       - python3 ./hello_world.py &
       - python3 -m pytest test_integration.py
 
+artifacts:
+  files:
+  - '**/*'
+  base-directory: '.'
+  name application.zip

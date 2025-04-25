@@ -2,15 +2,13 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: 'AWS CodePipeline infrastructure for CI-CD testing'
 
 Parameters:
-  InfrastructureStackName:
-    Type: String
-    Description: Name of the infrastructure stack
   PythonVersion:
     Type: String
     Default: '3.9'
     Description: Python version to use
 
 Resources:
+
   BuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -66,7 +64,7 @@ Resources:
         Type: CODEPIPELINE
         BuildSpec: deployspec.yml
 
-Output:
+Outputs:
   BuildProjectName:
     Description: Name of the build project
     Value: !Ref BuildProject

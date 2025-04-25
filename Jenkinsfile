@@ -14,29 +14,29 @@ pipeline{
     stages {
         stage('Build') {
             steps {
-                sh """
+                sh '''
                     python --version
                     python -m ensurepip --upgrade
                     python -m pip install --upgrade pip
                     python -m pip install -r requirements.txt
-                """
+                '''
             }
         }
 
         stage('Test'){
             steps{
-                sh """
+                sh '''
                     mkdir -p junit
                     python -m pytest test_hello_world.py --junitxml=junit/test-results.xml
-                """
+                '''
 
-                sh """
+                sh '''
                     python hello_world.py &
                     echo \$! > flask.pid
                     sleep 5
                     python -m pytest test_integration.py --junitxml=junit/integration-test-results.xml
                     kill -9 \$(cat flask.pid)
-                """
+                '''
 
                 junit '**/junit/*.xml'
             }
@@ -45,23 +45,23 @@ pipeline{
         stage('Deploy'){
             steps{
                 withCredentials([azureServicePrincipal('AZURE_CREDENTIALS')]){
-                    sh """
+                    sh '''
                         az login --service-principal -u \$AZURE_CLIENT_ID -p \$AZURE_CLIENT_SECRET -t \$AZURE_TENANT_ID
                         az account set -s \$AZURE_SUBSCRIPTION_ID
-                    """
+                    '''
                 }
 
-                sh """
+                sh '''
                     az appservice plan create --resource-group ${RESOURCE_GROUP} --name ${PLAN_NAME} --sku B1 --is-linux
                     az webapp create --resource-group ${RESOURCE_GROUP} --plan ${PLAN_NAME} --name ${APP_NAME} --runtime "PYTHON|$(PYTHON_VERSION)"
-                """
+                '''
 
-                sh """
+                sh '''
                     zip -r app.zip *.py requirements.txt startup_script.sh
 
                     az webapp deployment source config-zip --resource-group ${RESOURCE_GROUP} --name ${APP_NAME} --src app.zip
                     az webapp config set --resource-group ${RESOURCE_GROUP} --name ${APP_NAME} --startup-command "./startup_script.sh"
-                """
+                '''
             }
         }        
     }

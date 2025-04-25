@@ -1,0 +1,18 @@
+version 0.1
+
+phases:
+  install:
+    commands:
+      - echo "Starting deployment script"
+      - python -m ensurepip --upgrade
+      - echo "Installing pip..."
+      - python -m pip install --upgrade pip
+      - echo "Installing requirements..."
+      - python -m pip install -r requirements.txt
+
+  test:
+    commands:
+      - python3 -m pytest test_hello_world.py
+      - python3 ./hello_world.py &
+      - python3 -m pytest test_integration.py
+

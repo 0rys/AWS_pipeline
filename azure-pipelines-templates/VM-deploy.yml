@@ -24,4 +24,3 @@ steps:
         scp -r $(System.ArtifactsDirectory)/* azureuser@VM_IP:/home/azureuser/
 
         az vm run-command invoke --resource-group dev-devopsreference-00001-rg --name dev-devopsreference-00001-vm --command-id RunShellScript --scripts "chmod +x /home/azureuser/startup_script.sh && /home/azureuser/startup_script.sh"
-

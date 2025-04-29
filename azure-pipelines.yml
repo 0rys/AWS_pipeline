@@ -37,6 +37,6 @@ stages:
   jobs:
   - job: Deploy
     steps:
-      - template: azure-pipelines-templates/ACI-deploy.yml@templates
-      parameters:
-        pythonVersion: $(pythonVersion)
+    - template: azure-pipelines-templates/ACI-deploy.yml@templates
+    parameters:
+      pythonVersion: $(pythonVersion)

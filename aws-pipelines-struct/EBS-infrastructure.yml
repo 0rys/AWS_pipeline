@@ -22,10 +22,67 @@ Parameters:
 
 
 Resources:
+
+  ElasticBeanstalkApplication:
+    Type: AWS::ElasticBeanstalk::Application
+    Properties:
+      ApplicationName: !Sub ${AWS::StackName}-app
+      Description: "Application for the pipeline deployment"
+
+  ElasticBeanstalkEnvironment:
+    Type: AWS::ElasticBeanstalk::Environment
+    Properties:
+      ApplicationName: !Ref ElasticBeanstalkApplication
+      EnvironmentName: !Sub "${AWS::StackName}-env"
+      SolutionStackName: "64bit Amazon Linux 2023 v4.5.1 running Python 3.12"
+      OptionSettings:
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: IamInstanceProfile
+          Value: !Ref InstanceProfile
+        - Namespace: aws:elasticbeanstalk:environment
+          OptionName: ServiceRole
+          Value: !Ref EBServiceRole
+
+  EBServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: elasticbeanstalk.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkService
+        - arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkEnhancedHealth
+
+  EBInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier
+        - arn:aws:iam::aws:policy/AWSElasticBeanstalkMulticontainerDocker
+        - arn:aws:iam::aws:policy/AWSElasticBeanstalkWorkerTier
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EBInstanceRole
+
+
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
-      Name: !Sub ${AWS::StackName}-pipeline
+      Name: !Sub "${AWS::StackName}-pipeline"
       RoleArn: !GetAtt CodepipelineServiceRole.Arn
       ArtifactStore:
         Type: S3
@@ -73,7 +130,7 @@ Resources:
               Configuration:
                 ProjectName: !Ref TestProject
               InputArtifacts:
-                - Name: SourceOutput
+                - Name: BuildOutput
               RunOrder: 1
         - Name: Deploy
           Actions:
@@ -81,11 +138,11 @@ Resources:
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
-                Provider: CodeDeploy
+                Provider: ElasticBeanstalk
                 Version: '1'
               Configuration:
-                ApplicationName: !Ref DeployProject
-                DeploymentGroupName: CICDIntegrationDeploymentGroup
+                ApplicationName: !Ref ElasticBeanstalkApplication
+                EnvironmentName: !Ref ElasticBeanstalkEnvironment
               InputArtifacts:
                 - Name: BuildOutput
               RunOrder: 1

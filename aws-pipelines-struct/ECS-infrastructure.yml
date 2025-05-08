@@ -22,67 +22,78 @@ Parameters:
 
 
 Resources:
-
-  ElasticBeanstalkApplication:
-    Type: AWS::ElasticBeanstalk::Application
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
     Properties:
-      ApplicationName: !Sub ${AWS::StackName}-app
-      Description: "Application for the pipeline deployment"
+      Family: WebAppTask 
+      Cpu: '256'
+      Memory: '512'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ContainerDefinitions:
+        - Name: !Sub ${AWS::StackName}-app 
+          Image: amazon/amazon-ecs-sample
+          Essential: true
+          PortMappings:
+            - ContainerPort: 80
+              Protocol: tcp
 
-  ElasticBeanstalkEnvironment:
-    Type: AWS::ElasticBeanstalk::Environment
+  ECSService:
+    Type: AWS::ECS::Service
     Properties:
-      ApplicationName: !Ref ElasticBeanstalkApplication
-      EnvironmentName: !Sub "${AWS::StackName}-env"
-      SolutionStackName: "64bit Amazon Linux 2023 v4.5.1 running Python 3.12"
-      OptionSettings:
-        - Namespace: aws:autoscaling:launchconfiguration
-          OptionName: IamInstanceProfile
-          Value: !Ref InstanceProfile
-        - Namespace: aws:elasticbeanstalk:environment
-          OptionName: ServiceRole
-          Value: !Ref EBServiceRole
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - my-subnet
+            - my-second-subnet
+          SecurityGroups:
+            - securityGroup-id
+          AssignPublicIp: ENABLED
 
-  EBServiceRole:
-    Type: AWS::IAM::Role
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: elasticbeanstalk.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkService
-        - arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkEnhancedHealth
+      Name: !Sub ${AWS::StackName}-balancer
+      Subnets:
+        - my-subnet
+        - my-second-subnet
+      SecurityGroups:
+        - securityGroup-id
+      Scheme: internet-facing
 
-  EBInstanceRole:
-    Type: AWS::IAM::Role
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: ec2.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier
-        - arn:aws:iam::aws:policy/AWSElasticBeanstalkMulticontainerDocker
-        - arn:aws:iam::aws:policy/AWSElasticBeanstalkWorkerTier
+      Name: !Sub ${AWS::StackName}-target
+      VpcId: vpc-id
+      Port: 80
+      Protocol: HTTP
+      TargetType: ip
 
-  InstanceProfile:
-    Type: AWS::IAM::InstanceProfile
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
-      Roles:
-        - !Ref EBInstanceRole
+      LoadBalancerArn: !Ref LoadBalancer
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+      Port: 80
+      Protocol: HTTP
 
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub ${AWS::StackName}-cluster
 
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
-      Name: !Sub "${AWS::StackName}-pipeline"
+      Name: !Sub ${AWS::StackName}-pipeline
       RoleArn: !GetAtt CodepipelineServiceRole.Arn
       ArtifactStore:
         Type: S3
@@ -138,11 +149,12 @@ Resources:
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
-                Provider: ElasticBeanstalk
+                Provider: CodeDeploy
                 Version: '1'
               Configuration:
-                ApplicationName: !Ref ElasticBeanstalkApplication
-                EnvironmentName: !Ref ElasticBeanstalkEnvironment
+                ClusterName: !Ref ECSCluster
+                ServiceName: !Ref ECSService
+                FileName: imagedefinitions.json
               InputArtifacts:
                 - Name: BuildOutput
               RunOrder: 1

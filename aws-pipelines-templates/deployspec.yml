@@ -1,4 +1,4 @@
-version: 0.2
+version: 0.1
 
 phases:
   install:
@@ -10,9 +10,13 @@ phases:
       - echo "Installing requirements..."
       - python -m pip install -r requirements.txt
 
+  deploy:
+    commands:
+      - echo "Starting application..."
+      - python hello_world.py
+
 artifacts:
   files:
   - '**/*'
+  discard-paths: yes
   base-directory: '.'
-  name application.zip
-

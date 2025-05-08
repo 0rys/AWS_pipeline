@@ -19,5 +19,5 @@ phases:
 artifacts:
   files:
   - '**/*'
+  discard-paths: yes
   base-directory: '.'
-  name application.zip

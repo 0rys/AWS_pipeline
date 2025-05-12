@@ -29,7 +29,7 @@ stages:
   jobs:
   - job: Test
     steps:
-    - template: azure-pipelines-templates/ACI-test.yml@templates
+    - template: azure-pipelines-templates/test.yml@templates
       parameters:
         pythonVersion: $(pythonVersion)
 
@@ -37,6 +37,6 @@ stages:
   jobs:
   - job: Deploy
     steps:
-    - template: azure-pipelines-templates/ACI-deploy.yml@templates
+    - template: azure-pipelines-templates/VM-deploy.yml@templates
       parameters:
         pythonVersion: $(pythonVersion)

@@ -37,29 +37,32 @@ steps:
       testRunTitle: 'Python Tests'
     condition: succeededOrFailed()
 
-  - task: Docker@2
-    displayName: Build and push Docker image to Nexus
-    inputs:
-      containerRegistry: 'NexusRM PRD-DevOpsReference' 
-      repository: 'ema/devopstest'
-      command: 'buildAndPush'
-      Dockerfile: '**/Dockerfile'
-      tags: |
-        $(Build.BuildId)
-        latest
-
-
-  # - task: Bash@3
-  #   name: TestImagetoNexus
-  #   displayName: creates and uploads docker image to Nexus
+  # - task: Docker@2
+  #   displayName: Build and push Docker image to Nexus
   #   inputs:
-  #     targetType: 'inline'
-  #     script: |
-  #       echo "building docker image"
-  #       docker build -t dir/subdir/path:${path}
-  #       echo "Image built dir/subdir/path:${path}"
-  #       docker tag dir/subdir/path:${path} registry.ema.europa.eu/dir/subdir/path:${path}
-  #       echo "Image tagged for registry dir/subdir/path:${path}"
-  #       docker push registry.ema.europa.eu/dir/subdir/path:${path}
-  #       echo "Image pushed to registry dir/subdir/path:${path}"
+  #     containerRegistry: 'NexusRM PRD-DevOpsReference' 
+  #     repository: 'ema/devopstest'
+  #     command: 'buildAndPush'
+  #     Dockerfile: '**/Dockerfile'
+  #     tags: |
+  #       $(Build.BuildId)
+  #       latest
+
+
+  - task: Bash@3
+    name: TestImagetoNexus
+    displayName: creates and uploads docker image to Nexus
+    inputs:
+      targetType: 'inline'
+      script: |
+        export http_proxy='http://proxy.eudra.org:8080'
+        export https_proxy='http://proxy.eudra.org:8080'
+        export no_proxy='localhost,127.0.0.1,.emea.eu.int,.ema.europa.eu,.eudra.org'
+        echo "building docker image"
+        docker build -t devopstest .
+        echo "Image built ema/devopstest"
+        docker tag ema/devopstest registry.ema.europa.eu/ema/devopstest
+        echo "Image tagged for registry ema/devopstest"
+        docker push localhost/devopstest registry.ema.europa.eu/ema/devopstest
+        echo "Image pushed to registry ema/devopstest"
 

@@ -9,82 +9,18 @@ steps:
       artifactName: 'drop'
       downloadPath: '$(System.ArtifactsDirectory)'
 
-  # creating VM resources compliant with organization policies
+  # creating virtual machine resources
   - task: AzureCLI@2
     inputs:
       azureSubscription: 'dev-devopsreference-00001-spn'
       scriptType: 'bash'
       scriptLocation: 'inlineScript'
       inlineScript: |
-        # Use an allowed VM size from the policy list
-        # Create VM without public IP (--public-ip-address "" disables public IP)
-        az vm create \
-          --resource-group dev-devopsreference-00001-rg \
-          --name dev-devopsreference-00001-vm \
-          --image Ubuntu2204 \
-          --admin-username azureuser \
-          --generate-ssh-keys \
-          --size Standard_D2s_v3 \
-          --public-ip-address "" \
-          --vnet-name "" \
-          --subnet "" \
-          --nsg ""
+
+        az vm create --resource-group dev-devopsreference-00001-rg --name dev-devopsreference-00001-vm --image Ubuntu2204 --admin-username azureuser --generate-ssh-keys
         
-        # Use Azure VM run-command to copy files and execute scripts
-        # First, upload artifacts to Azure Storage and then download them in the VM
-        STORAGE_ACCOUNT="devdevopsref00001storage"
-        CONTAINER_NAME="artifacts"
-        
-        # Create storage account if it doesn't exist
-        az storage account create \
-          --name $STORAGE_ACCOUNT \
-          --resource-group dev-devopsreference-00001-rg \
-          --sku Standard_LRS
-          
-        # Create container if it doesn't exist
-        az storage container create \
-          --name $CONTAINER_NAME \
-          --account-name $STORAGE_ACCOUNT
-          
-        # Upload artifacts to storage
-        az storage blob upload-batch \
-          --account-name $STORAGE_ACCOUNT \
-          --destination $CONTAINER_NAME \
-          --source $(System.ArtifactsDirectory)
-          
-        # Generate SAS token for secure access
-        END_DATE=$(date -u -d "30 minutes" '+%Y-%m-%dT%H:%MZ')
-        SAS_TOKEN=$(az storage container generate-sas \
-          --account-name $STORAGE_ACCOUNT \
-          --name $CONTAINER_NAME \
-          --permissions r \
-          --expiry $END_DATE \
-          --output tsv)
-          
-        # Create script to download artifacts and run the application
-        DOWNLOAD_SCRIPT="
-        #!/bin/bash
-        mkdir -p /home/azureuser/app
-        cd /home/azureuser/app
-        
-        # Install Azure CLI
-        curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-        
-        # Download artifacts
-        az storage blob download-batch \
-          --account-name $STORAGE_ACCOUNT \
-          --source $CONTAINER_NAME \
-          --destination /home/azureuser/app \
-          --sas-token '$SAS_TOKEN'
-          
-        # Run startup script
-        chmod +x /home/azureuser/app/startup_script.sh
-        /home/azureuser/app/startup_script.sh
-        "
-        
-        # Execute the download script on the VM
-        az vm run-command invoke \
-          --resource-group dev-devopsreference-00001-rg \
-          --name dev-devopsreference-00001-vm \
-          --command-id RunShellScript \
-          --scripts "$DOWNLOAD_SCRIPT"
+        VM_IP=$(az vm show --resource-group dev-devopsreference-00001-rg --name dev-devopsreference-00001-vm --show-details --query [publicIps] --output tsv)
+
+        scp -r $(System.ArtifactsDirectory)/* azureuser@VM_IP:/home/azureuser/
+
+        az vm run-command invoke --resource-group dev-devopsreference-00001-rg --name dev-devopsreference-00001-vm --command-id RunShellScript --scripts "chmod +x /home/azureuser/startup_script.sh && /home/azureuser/startup_script.sh"

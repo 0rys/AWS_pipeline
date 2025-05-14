@@ -40,8 +40,8 @@ steps:
   - task: Docker@2
     displayName: Build and push Docker image to Nexus
     inputs:
-      containerRegistry: '' # nexus service connection name
-      repository: 'dir/subdir/path'
+      containerRegistry: 'NexusRM PRD-DevOpsReference' 
+      repository: 'ema/devopstest'
       command: 'buildAndPush'
       Dockerfile: '**/Dockerfile'
       tags: |

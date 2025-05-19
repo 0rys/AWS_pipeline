@@ -10,7 +10,7 @@ phases:
       - echo "Installing requirements..."
       - python -m pip install -r requirements.txt
 
-  test:
+  build:
     commands:
       - python3 -m pytest test_hello_world.py
       - python3 ./hello_world.py &

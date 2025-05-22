@@ -52,7 +52,7 @@ pipeline{
 
                 sh '''
                     az appservice plan create --resource-group ${RESOURCE_GROUP} --name ${PLAN_NAME} --sku B1 --is-linux
-                    az webapp create --resource-group ${RESOURCE_GROUP} --plan ${PLAN_NAME} --name ${APP_NAME} --runtime "PYTHON|$(PYTHON_VERSION)"
+                    az webapp create --resource-group ${RESOURCE_GROUP} --plan ${PLAN_NAME} --name ${APP_NAME} --runtime "PYTHON|${PYTHON_VERSION}"
                 '''
 
                 sh '''

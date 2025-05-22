@@ -15,21 +15,26 @@ pipeline{
         stage('Build') {
             steps {
                 sh '''
+					python3 -m venv venv
+					source venv/bin/activate # Activate the environment
                     python3 --version
                     python3 -m ensurepip --upgrade
-                    sudo python3 -m pip install -r requirements.txt
+					python3 -m pip install --upgrade pip
+                    python3 -m pip install -r requirements.txt
                 '''
             }
-        }
+		}
 
         stage('Test'){
             steps{
                 sh '''
+					source venv/bin/activate # Activate the environment
                     mkdir -p junit
                     python3 -m pytest test_hello_world.py --junitxml=junit/test-results.xml
                 '''
 
                 sh '''
+					source venv/bin/activate # Activate the environment
                     python3 hello_world.py &
                     echo \$! > flask.pid
                     sleep 5

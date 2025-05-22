@@ -61,7 +61,7 @@ steps:
         echo "building docker image"
         docker build -t devopstest .
         echo "Image built ema/devopstest"
-        docker tag ema/devopstest registry.ema.europa.eu/ema/devopstest
+        docker tag devopstest registry.ema.europa.eu/ema/devopstest
         echo "Image tagged for registry ema/devopstest"
         docker push localhost/devopstest registry.ema.europa.eu/ema/devopstest
         echo "Image pushed to registry ema/devopstest"

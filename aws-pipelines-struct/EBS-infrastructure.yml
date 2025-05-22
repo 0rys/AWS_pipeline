@@ -19,6 +19,15 @@ Parameters:
     Type: String
     Description: Authentication token to access github
     NoEcho: true
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC Id for the ElasticBeanstalk environment
+  Subnet1:
+    Type: AWS::EC2::Subnet::Id
+    Description: first subnet for the ElasticBeanstalk application
+  Subnet2:
+    Type: AWS::EC2::Subnet::Id
+    Description: second subnet for the ElasticBeanstalk application
 
 
 Resources:
@@ -42,6 +51,128 @@ Resources:
         - Namespace: aws:elasticbeanstalk:environment
           OptionName: ServiceRole
           Value: !Ref EBServiceRole
+        - Namespace: aws:elasticbeanstalk:environment
+          OptionName: LoadBalancerType
+          Value: application
+        - Namespace: aws:ec2:vpc
+          OptionName: ELBScheme
+          Value: internal
+        - Namespace: aws:ec2:vpc
+          OptionName: VPCId
+          Value: !Ref VpcId
+        - Namespace: aws:ec2:vpc
+          OptionName: Subnets
+          Value: !Join [',', [!Ref Subnet1, !Ref Subnet2]]
+        - Namespace: aws:ec2:vpc
+          OptionName: ELBSubnets
+          Value: !Join [',', [!Ref Subnet1, !Ref Subnet2]]
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: SecurityGroups
+          Value: !Ref EBSecurityGroup
+        - Namespace: aws:elasticbeanstalk:environment:proxy
+          OptionName: ProxyServer
+          Value: nginx
+        - Namespace: aws:elasticbeanstalk:application:environment
+          OptionName: HTTP_PROXY
+          Value: http://proxy.eudra.org:8080
+        - Namespace: aws:elasticbeanstalk:application:environment
+          OptionName: HTTPS_PROXY
+          Value: http://proxy.eudra.org:8080 
+        - Namespace: aws:elasticbeanstalk:application:environment
+          OptionName: NO_PROXY
+          Value: "169.254.169.254,169.254.170.2,s3.eu-central-1.amazonaws.com,*.s3.eu-central-1.amazonaws.com,elasticbeanstalk-platform-assets-eu-central-1.s3.eu-central-1.amazonaws.com"
+        
+  EBVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.elasticbeanstalk
+      VpcId: !Ref VpcId
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref Subnet1
+        - !Ref Subnet2
+      SecurityGroupIds:
+        - !Ref EBSecurityGroup
+
+  EBHVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.elasticbeanstalk-health
+      VpcId: !Ref VpcId
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref Subnet1
+        - !Ref Subnet2
+      SecurityGroupIds:
+        - !Ref EBSecurityGroup
+
+  CFVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.cloudformation
+      VpcId: !Ref VpcId
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref Subnet1
+        - !Ref Subnet2
+      SecurityGroupIds:
+        - !Ref EBSecurityGroup
+
+  LogVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.logs
+      VpcId: !Ref VpcId
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref Subnet1
+        - !Ref Subnet2
+      SecurityGroupIds:
+        - !Ref EBSecurityGroup
+
+  SQSVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.sqs
+      VpcId: !Ref VpcId
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref Subnet1
+        - !Ref Subnet2
+      SecurityGroupIds:
+        - !Ref EBSecurityGroup
+
+  S3VpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcId: !Ref VpcId
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - rtb-0fe2d0ffbcc196901
+        - rtb-0f2def0c0c24fb686
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: 's3:*'
+            Resource: '*'
+
+  EBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Elastic Beanstalk instances
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
 
   EBServiceRole:
     Type: AWS::IAM::Role
@@ -167,6 +298,18 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      Policies:
+        - PolicyName: CloudWatchLogsAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*
 
   CodepipelineServiceRole:
     Type: AWS::IAM::Role
@@ -182,6 +325,37 @@ Resources:
         - arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess
         - arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess
         - arn:aws:iam::aws:policy/AdministratorAccess-AWSElasticBeanstalk
+      Policies:
+          - PolicyName: CloudFormationAccess
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+              - Effect: Allow
+                Action:
+                  - s3:CreateBucket
+                  - s3:DeleteBucket
+                  - s3:PutBucketPolicy
+                  - s3:DeleteBucketPolicy
+                  - s3:GetBucketPolicy
+                  - s3:ListBucket
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:DeleteObject
+                Resource:
+                  - !Sub arn:aws:s3:::${artifactbucket363757}
+                  - !Sub arn:aws:s3:::${artifactbucket363757}/*
+
+              # - Effect: Allow
+              #   Action:
+              #     - logs:CreateLogStream
+              #     - logs:PutLogEvents
+              #   Resource:
+              #     - !Sub arn:aws:logs:eu-central-1:730335357068:log-group:/aws/codebuild/${BuildProject}:*
+              #     - !Sub arn:aws:logs:eu-central-1:730335357068:log-group:/aws/codebuild/${TestProject}:*
+              #     - !Sub arn:aws:logs:eu-central-1:730335357068:log-group:/aws/codebuild/${DeployProject}:*
+              #     - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/AWSPipelineIntegrationDeployment-build:*
+
+
 
 
   BuildProject:

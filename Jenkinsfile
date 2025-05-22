@@ -15,10 +15,10 @@ pipeline{
         stage('Build') {
             steps {
                 sh '''
-                    python --version
-                    python -m ensurepip --upgrade
-                    python -m pip install --upgrade pip
-                    python -m pip install -r requirements.txt
+                    python3 --version
+                    python3 -m ensurepip --upgrade
+                    python3 -m pip install --upgrade pip
+                    python3 -m pip install -r requirements.txt
                 '''
             }
         }
@@ -27,14 +27,14 @@ pipeline{
             steps{
                 sh '''
                     mkdir -p junit
-                    python -m pytest test_hello_world.py --junitxml=junit/test-results.xml
+                    python3 -m pytest test_hello_world.py --junitxml=junit/test-results.xml
                 '''
 
                 sh '''
-                    python hello_world.py &
+                    python3 hello_world.py &
                     echo \$! > flask.pid
                     sleep 5
-                    python -m pytest test_integration.py --junitxml=junit/integration-test-results.xml
+                    python3 -m pytest test_integration.py --junitxml=junit/integration-test-results.xml
                     kill -9 \$(cat flask.pid)
                 '''
 

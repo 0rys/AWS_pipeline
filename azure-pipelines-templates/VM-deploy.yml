@@ -9,6 +9,14 @@ steps:
       artifactName: 'drop'
       downloadPath: '$(System.ArtifactsDirectory)'
 
+  - task: ArchiveFiles@2
+    inputs:
+      rootFolderOrFile: '$(System.ArtifactsDirectory)' 
+      includedRootFolder: false
+      archiveType: 'zip'
+      archiveFile: '$(Build.ArtifactsStagingDirectory)/app.zip'
+      replaceExistingArchive: true
+
   # creating virtual machine resources
   - task: AzureCLI@2
     inputs:
@@ -17,10 +25,12 @@ steps:
       scriptLocation: 'inlineScript'
       inlineScript: |
 
+        # Create storage container
+        az storage account create --name devdevopsref00001sa --resource-group dev-devopsreference-00001-rg --location centraleu --sku Standard_LRS
+        az storage container create --name artifacts --account-name dev-devopsreference-00001-rg --auth-mode login
+
         az vm create --resource-group dev-devopsreference-00001-rg --name dev-devopsreference-00001-vm --image Ubuntu2204 --admin-username azureuser --generate-ssh-keys
         
-        VM_IP=$(az vm show --resource-group dev-devopsreference-00001-rg --name dev-devopsreference-00001-vm --show-details --query [publicIps] --output tsv)
-
-        scp -r $(System.ArtifactsDirectory)/* azureuser@VM_IP:/home/azureuser/
+        
 
         az vm run-command invoke --resource-group dev-devopsreference-00001-rg --name dev-devopsreference-00001-vm --command-id RunShellScript --scripts "chmod +x /home/azureuser/startup_script.sh && /home/azureuser/startup_script.sh"

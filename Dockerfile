@@ -14,4 +14,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # startup script execution
-CMD ["bash", "startup.sh"]
+CMD ["bash", "startup_script.sh"]

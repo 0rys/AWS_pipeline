@@ -1,5 +1,11 @@
 # python version
-FROM public.ecr.aws/amazonlinux/python:3.9-slim
+FROM amazonlinux:2
+
+# install linux
+RUN amazon-linux-extras enable python3.9 && yum install -y python39-pip && yum clean all
+
+# set python3.9 as the default
+RUN alternatives --install /usr/bin/python python /usr/bin/python3.9 1 && alternatives --set python /usr/bin/python3.9 && python -m pip install --upgrade pip
 
 # working directory
 WORKDIR /app

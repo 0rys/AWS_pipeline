@@ -10,10 +10,7 @@ phases:
       - aws --version
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=${COMMIT_HASH}
-      - mkdir -p ~/.docker
-      - echo '{"proxies":{"default":{"httpProxy":"'$HTTP_PROXY'","httpsProxy":"'$HTTPS_PROXY'","noProxy":"'$NO_PROXY'"}}}' > ~/.docker/config.json
-      - cat ~/.docker/config.json
-      - export NO_PROXY="$NO_PROXY,public.ecr.aws"
+      - docker commit $(hostname) codebuild:local
 
   build:
     commands:

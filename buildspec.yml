@@ -2,6 +2,8 @@ version: 0.2
 
 phases:
 
+  # The image needs to be created locally, fetching it from anywhere is too much of a hassle
+
   pre_build:
     commands:
       - echo "Logging in to Amazon ECR"
@@ -16,7 +18,7 @@ phases:
   build:
     commands:
       - echo "Building docker image"
-      - docker build -t $REPOSITORY_URI:$IMAGE_TAG .
+      - docker build --pull=never -t $REPOSITORY_URI:$IMAGE_TAG .
 
   post_build:
     commands:

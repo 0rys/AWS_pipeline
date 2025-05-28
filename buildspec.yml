@@ -10,12 +10,15 @@ phases:
       - aws --version
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=${COMMIT_HASH}
-      - docker commit $(hostname) codebuild:local
+      - echo "FROM aws/codebuild/amazonlinux2-x86_64-standard:4.0" > Dockerfile.base
+      - docker build -t base:local -f Dockerfile.base .
 
   build:
     commands:
       - echo "Building docker image"
-      - docker build -t $REPOSITORY_URI:$IMAGE_TAG .
+      - echo "FROM base:local" > Dockerfile.new
+      - cat Dockerfile >> Dockerfile.new
+      - docker build -t $REPOSITORY_URI:$IMAGE_TAG -f Dockerfile.new
 
   post_build:
     commands:

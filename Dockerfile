@@ -1,7 +1,3 @@
-# python version
-ARG BASE_IMAGE=amazonlinux:2
-FROM ${BASE_IMAGE}
-
 # install linux
 RUN amazon-linux-extras enable python3.9 && yum install -y python39-pip && yum clean all
 

@@ -1,5 +1,5 @@
 # python version
-FROM python:3.9-slim
+FROM public.ecr.aws/amazonlinux/python:3.9-slim
 
 # working directory
 WORKDIR /app

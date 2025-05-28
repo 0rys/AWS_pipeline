@@ -2,21 +2,13 @@ version: 0.2
 
 phases:
 
-  install:
-    commands:
-      - echo "Starting deployment script"
-      - python -m ensurepip --upgrade
-      - echo "Installing pip..."
-      - python -m pip install --upgrade pip
-      - echo "Installing requirements..."
-      - python -m pip install -r requirements.txt
-
   pre_build:
     commands:
       - echo "Logging in to Amazon ECR"
       - aws --version
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=${COMMIT_HASH:=latest}
+      - aws ecr-public get-login-password --region eu-central-1 | docker login --username AWS --password-stdin public.ecr.aws
 
   build:
     commands:

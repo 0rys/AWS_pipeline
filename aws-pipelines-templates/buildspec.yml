@@ -1,34 +1,19 @@
 version: 0.2
 
 phases:
-  pre_build:
-    commands:
-      - echo "Setting up for offline build"
-      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      - IMAGE_TAG=${COMMIT_HASH}
-      # Create a local build context to avoid network dependencies
-      # - aws ecr get-login-password | docker login --username AWS --password-stdin $REPOSITORY_URI
-      - docker tag $(hostname) amazonlinux:2
-
   build:
     commands:
-      - echo "Building docker image without network access"
-      # Build with network disabled
-      - docker build --network=none -t $REPOSITORY_URI:$IMAGE_TAG -f Dockerfile .
-      # Tag the image for ECR
-      - docker tag $REPOSITORY_URI:$IMAGE_TAG $REPOSITORY_URI:latest
-
-  post_build:
-    commands:
-      - echo "Pushing docker image"
-      - aws ecr get-login-password | docker login --username AWS --password-stdin $REPOSITORY_URI
-      - docker push $REPOSITORY_URI:$IMAGE_TAG
-      - echo "Writing image definitions file..."
-      - printf '[{"name":"ecs-test", "imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+      - echo "Starting deployment script"
+      - python -m ensurepip --upgrade
+      - echo "Installing pip..."
+      - python -m pip install --upgrade pip
+      - echo "Installing requirements..."
+      - python -m pip install -r requirements.txt
+      - echo "Starting application..."
+      - python hello_world.py
 
 artifacts:
   files:
-  - imagedefinitions.json
   - '**/*'
   discard-paths: yes
   base-directory: '.'

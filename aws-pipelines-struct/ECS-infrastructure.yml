@@ -439,7 +439,7 @@ Resources:
             Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepository}
       Source:
         Type: CODEPIPELINE
-        BuildSpec: buildspec.yml
+        BuildSpec: aws-pipelines-templates/buildspec.yml
 
       # VpcConfig:
       #   VpcId: !Ref VpcId
@@ -479,7 +479,7 @@ Resources:
 
       Source:
         Type: CODEPIPELINE
-        BuildSpec: testspec.yml
+        BuildSpec: aws-pipelines-templates/testspec.yml
 
   DeployProject:
     Type: AWS::CodeBuild::Project
@@ -503,7 +503,7 @@ Resources:
             Value: "localhost, 127.0.0.1, 169.254.169.254, 169.254.170.2"
       Source:
         Type: CODEPIPELINE
-        BuildSpec: deployspec.yml
+        BuildSpec: aws-pipelines-templates/deployspec.yml
       VpcConfig:
         VpcId: !Ref VpcId
         Subnets:

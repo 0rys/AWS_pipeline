@@ -374,7 +374,7 @@ Resources:
             Value: !Ref PythonVersion
       Source:
         Type: CODEPIPELINE
-        BuildSpec: buildspec.yml
+        BuildSpec: aws-pipelines-templates/buildspec.yml
 
   TestProject:
     Type: AWS::CodeBuild::Project
@@ -392,7 +392,7 @@ Resources:
             Value: !Ref PythonVersion
       Source:
         Type: CODEPIPELINE
-        BuildSpec: testspec.yml
+        BuildSpec: aws-pipelines-templates/testspec.yml
 
 
   DeployProject:
@@ -411,7 +411,7 @@ Resources:
             Value: !Ref PythonVersion
       Source:
         Type: CODEPIPELINE
-        BuildSpec: deployspec.yml
+        BuildSpec: aws-pipelines-templates/deployspec.yml
 
 Outputs:
   BuildProjectName:

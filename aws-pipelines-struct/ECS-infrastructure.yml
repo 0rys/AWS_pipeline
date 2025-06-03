@@ -19,12 +19,121 @@ Parameters:
     Type: String
     Description: Authentication token to access github
     NoEcho: true
-
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC Id for the ElasticBeanstalk environment
+  Subnet1:
+    Type: AWS::EC2::Subnet::Id
+    Description: first subnet for the ElasticBeanstalk application
+  Subnet2:
+    Type: AWS::EC2::Subnet::Id
+    Description: second subnet for the ElasticBeanstalk application
 
 Resources:
+
+  # S3Endpoint:
+  #   Type: AWS::EC2::VPCEndpoint
+  #   Properties:
+  #     ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+  #     VpcId: !Ref VpcId
+  #     RouteTableIds:
+  #       - rtb-0f2def0c0c24fb686
+  #       - rtb-0fe2d0ffbcc196901
+  #     PolicyDocument:
+  #       Version: '2012-10-17'
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal: '*'
+  #           Action: 's3:*'
+  #           Resource: '*'
+
+  ECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: ecs-test
+      ImageScanningConfiguration:
+        ScanOnPush: true
+
+  ECRApiEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VpcId
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.api
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref Subnet1
+        - !Ref Subnet2
+      SecurityGroupIds:
+        - !Ref EndpointSecurityGroup
+
+  ECRDkrEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VpcId
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.dkr
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref Subnet1
+        - !Ref Subnet2
+      SecurityGroupIds:
+        - !Ref EndpointSecurityGroup
+
+  LogsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VpcId
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.logs
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref Subnet1
+        - !Ref Subnet2
+      SecurityGroupIds:
+        - !Ref EndpointSecurityGroup
+
+  CodeBuildEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VpcId
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.codebuild
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref Subnet1
+        - !Ref Subnet2
+      SecurityGroupIds:
+        - !Ref EndpointSecurityGroup
+
+  EndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for VPC endpoints
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
+
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
       Family: WebAppTask 
       Cpu: '256'
       Memory: '512'
@@ -32,48 +141,81 @@ Resources:
       RequiresCompatibilities:
         - FARGATE
       ContainerDefinitions:
-        - Name: !Sub ${AWS::StackName}-app 
-          Image: amazon/amazon-ecs-sample
+        - Name: ecs-test
+          Image: 730335357068.dkr.ecr.eu-central-1.amazonaws.com/cicdtests/devopsimages:latest
           Essential: true
           PortMappings:
-            - ContainerPort: 80
+            - ContainerPort: 8000
               Protocol: tcp
+          Environment:
+            - Name: HTTP_PROXY
+              Value: http://proxy.eudra.org:8080
+            - Name: HTTPS_PROXY
+              Value: http://proxy.eudra.org:8080
+            - Name: NO_PROXY
+              Value: "localhost, 127.0.0.1, 169.254.169.254, 169.254.170.2"
 
-  ECSService:
-    Type: AWS::ECS::Service
+  ECSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
     Properties:
-      Cluster: !Ref ECSCluster
-      TaskDefinition: !Ref TaskDefinition
-      DesiredCount: 1
-      LaunchType: FARGATE
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          Subnets:
-            - my-subnet
-            - my-second-subnet
-          SecurityGroups:
-            - securityGroup-id
-          AssignPublicIp: ENABLED
+      GroupDescription: Security group for Container instances
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  # ECSService:
+  #   Type: AWS::ECS::Service
+  #   DependsOn: 
+  #     - Listener
+  #   Properties:
+  #     Cluster: !Ref ECSCluster
+  #     TaskDefinition: !Ref TaskDefinition
+  #     DesiredCount: 1
+  #     LaunchType: FARGATE
+  #     NetworkConfiguration:
+  #       AwsvpcConfiguration:
+  #         Subnets:
+  #           - !Ref Subnet1
+  #           - !Ref Subnet2
+  #         SecurityGroups:
+  #             - !Ref ECSecurityGroup
+  #         AssignPublicIp: ENABLED
+  #     LoadBalancers:
+  #       - ContainerName: ecs-test
+  #         ContainerPort: 80
+  #         TargetGroupArn: !Ref TargetGroup
 
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Name: !Sub ${AWS::StackName}-balancer
       Subnets:
-        - my-subnet
-        - my-second-subnet
+        - !Ref Subnet1
+        - !Ref Subnet2
+      Scheme: internal
       SecurityGroups:
-        - securityGroup-id
-      Scheme: internet-facing
+          - !Ref ECSecurityGroup
 
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       Name: !Sub ${AWS::StackName}-target
-      VpcId: vpc-id
-      Port: 80
+      VpcId: !Ref VpcId
+      Port: 8000
       Protocol: HTTP
       TargetType: ip
+      HealthCheckPath: /
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 5
 
   Listener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -97,7 +239,7 @@ Resources:
       RoleArn: !GetAtt CodepipelineServiceRole.Arn
       ArtifactStore:
         Type: S3
-        Location: artifactbucket363757
+        Location: ecsartifactbucket363757
       Stages:
         - Name: Source
           Actions:
@@ -141,28 +283,29 @@ Resources:
               Configuration:
                 ProjectName: !Ref TestProject
               InputArtifacts:
-                - Name: SourceOutput
-              RunOrder: 1
-        - Name: Deploy
-          Actions:
-            - Name: Deploy
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Provider: CodeDeploy
-                Version: '1'
-              Configuration:
-                ClusterName: !Ref ECSCluster
-                ServiceName: !Ref ECSService
-                FileName: imagedefinitions.json
-              InputArtifacts:
                 - Name: BuildOutput
               RunOrder: 1
 
-  artifactbucket363757:
+        # - Name: Deploy
+        #   Actions:
+        #     - Name: Deploy
+        #       ActionTypeId:
+        #         Category: Deploy
+        #         Owner: AWS
+        #         Provider: ECS
+        #         Version: '1'
+        #       Configuration:
+        #         ClusterName: !Ref ECSCluster
+        #         ServiceName: !Ref ECSService
+        #         FileName: imagedefinitions.json
+        #       InputArtifacts:
+        #         - Name: BuildOutput
+        #       RunOrder: 1
+
+  ecsartifactbucket363757:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: "artifactbucket363757"
+      BucketName: "ecsartifactbucket363757"
       VersioningConfiguration:
         Status: Enabled
 
@@ -179,6 +322,59 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      Policies:
+        - PolicyName: EC2FullAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:*
+                Resource: '*'
+        - PolicyName: ECRAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:PutImage
+                Resource: '*'
+        
+        # - PolicyName: VpcAccess
+        #   PolicyDocument:
+        #     Version: '2012-10-17'
+        #     Statement:
+        #       - Effect: Allow
+        #         Action:
+        #           - ec2:CreateNetworkInterface
+        #           - ec2:DescribeNetworkInterfaces
+        #           - ec2:DeleteNetworkInterface
+        #           - ec2:DescribeSubnets
+        #           - ec2:DescribeSecurityGroups
+        #           - ec2:DescribeDhcpOptions
+        #           - ec2:DescribeVpcs
+        #         Resource: '*'
+
+        - PolicyName: CloudWatchLogAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*:*
+
 
   CodepipelineServiceRole:
     Type: AWS::IAM::Role
@@ -193,7 +389,27 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess
         - arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess
-        - arn:aws:iam::aws:policy/AdministratorAccess-AWSElasticBeanstalk
+        - arn:aws:iam::aws:policy/AmazonECS_FullAccess
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser
+      Policies:
+        - PolicyName: S3ArtifactAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+                - s3:CreateBucket
+                - s3:DeleteBucket
+                - s3:PutBucketPolicy
+                - s3:DeleteBucketPolicy
+                - s3:GetBucketPolicy
+                - s3:ListBucket
+                - s3:PutObject
+                - s3:GetObject
+                - s3:DeleteObject
+              Resource:
+                - !Sub arn:aws:s3:::${ecsartifactbucket363757}
+                - !Sub arn:aws:s3:::${ecsartifactbucket363757}/*
 
 
   BuildProject:
@@ -207,12 +423,31 @@ Resources:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
         Image: aws/codebuild/amazonlinux2-x86_64-standard:4.0
+        PrivilegedMode: true
         EnvironmentVariables:
           - Name: PYTHON_VERSION
             Value: !Ref PythonVersion
+          - Name: HTTP_PROXY
+            Value: http://proxy.eudra.org:8080
+          - Name: HTTPS_PROXY
+            Value: http://proxy.eudra.org:8080
+          - Name: NO_PROXY
+            Value: "localhost,127.0.0.1,169.254.169.254,169.254.170.2,.amazonaws.com"
+          - Name: AWS_REGION
+            Value: !Sub ${AWS::Region} 
+          - Name: REPOSITORY_URI
+            Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepository}
       Source:
         Type: CODEPIPELINE
         BuildSpec: buildspec.yml
+
+      # VpcConfig:
+      #   VpcId: !Ref VpcId
+      #   Subnets:
+      #     - !Ref Subnet1
+      #     - !Ref Subnet2
+      #   SecurityGroupIds:
+      #     - !Ref ECSecurityGroup
 
   TestProject:
     Type: AWS::CodeBuild::Project
@@ -228,10 +463,23 @@ Resources:
         EnvironmentVariables:
           - Name: PYTHON_VERSION
             Value: !Ref PythonVersion
+          - Name: HTTP_PROXY
+            Value: http://proxy.eudra.org:8080
+          - Name: HTTPS_PROXY
+            Value: http://proxy.eudra.org:8080
+          - Name: NO_PROXY
+            Value: "localhost, 127.0.0.1, 169.254.169.254, 169.254.170.2"
+      VpcConfig:
+        VpcId: !Ref VpcId
+        Subnets:
+          - !Ref Subnet1
+          - !Ref Subnet2
+        SecurityGroupIds:
+          - !Ref ECSecurityGroup
+
       Source:
         Type: CODEPIPELINE
         BuildSpec: testspec.yml
-
 
   DeployProject:
     Type: AWS::CodeBuild::Project
@@ -247,9 +495,22 @@ Resources:
         EnvironmentVariables:
           - Name: PYTHON_VERSION
             Value: !Ref PythonVersion
+          - Name: HTTP_PROXY
+            Value: http://proxy.eudra.org:8080
+          - Name: HTTPS_PROXY
+            Value: http://proxy.eudra.org:8080
+          - Name: NO_PROXY
+            Value: "localhost, 127.0.0.1, 169.254.169.254, 169.254.170.2"
       Source:
         Type: CODEPIPELINE
         BuildSpec: deployspec.yml
+      VpcConfig:
+        VpcId: !Ref VpcId
+        Subnets:
+          - !Ref Subnet1
+          - !Ref Subnet2
+        SecurityGroupIds:
+          - !Ref ECSecurityGroup
 
 Outputs:
   BuildProjectName:

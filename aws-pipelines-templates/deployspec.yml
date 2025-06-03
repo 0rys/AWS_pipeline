@@ -1,22 +1,25 @@
-version: 0.1
+version: 0.2
 
 phases:
   install:
+    runtime-versions:
+      python: 3.12
     commands:
       - echo "Starting deployment script"
-      - python -m ensurepip --upgrade
-      - echo "Installing pip..."
       - python -m pip install --upgrade pip
-      - echo "Installing requirements..."
       - python -m pip install -r requirements.txt
 
   build:
     commands:
-      - echo "Starting application..."
-      - python hello_world.py
+      - echo "Preparing application for deployment"
+      - mkdir -p .ebextensions
+      # Ensure all necessary files are included in the deployment package
+      - echo "Creating deployment artifact"
 
 artifacts:
   files:
-  - '**/*'
-  discard-paths: yes
-  base-directory: '.'
+    - hello_world.py
+    - requirements.txt
+    - Procfile
+    - .ebextensions/**/*
+  discard-paths: no
